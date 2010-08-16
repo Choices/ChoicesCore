@@ -472,6 +472,23 @@ void Unit::RemoveSpellbyDamageTaken(AuraType auraType, uint32 damage)
 
     // The chance to dispel an aura depends on the damage taken with respect to the casters level.
     uint32 max_dmg = getLevel() > 8 ? 25 * getLevel() - 150 : 50;
+
+	AuraList const& typeAuras = GetAurasByType(auraType);
+	for (AuraList::const_iterator iter = typeAuras.begin(); iter != typeAuras.end(); ++iter)
+	{
+		Unit *caster = (*iter)->GetCaster();
+
+		if(!caster)
+			continue;
+
+		AuraList const& mOverrideClassScript = caster->GetAurasByType(SPELL_AURA_OVERRIDE_CLASS_SCRIPTS);
+		for(AuraList::const_iterator i = mOverrideClassScript.begin(); i != mOverrideClassScript.end(); ++i)
+		{
+			if ((*i)->GetModifier()->m_miscvalue == 7801 && (*i)->isAffectedOnSpell((*iter)->GetSpellProto()))
+				max_dmg += (*i)->GetModifier()->m_amount * max_dmg / 100;
+		}
+	}
+
     float chance = float(damage) / max_dmg * 100.0f;
     if (roll_chance_f(chance))
         RemoveSpellsCausingAura(auraType);
@@ -6302,6 +6319,11 @@ uint32 Unit::SpellDamageBonusTaken(Unit *pCaster, SpellEntry const *spellProto, 
     {
         if ((*i)->GetModifier()->m_miscvalue & GetSpellSchoolMask(spellProto))
             TakenTotalMod *= ((*i)->GetModifier()->m_amount + 100.0f) / 100.0f;
+
+		// Glyph of Salvation
+		if ((*i)->GetId() == 1038 && (*i)->GetCasterGUID() == GetGUID())
+			if (Aura *dummy = GetDummyAura(63225))
+				TakenTotalMod *= (-(dummy->GetModifier()->m_amount) + 100.0f) / 100.0f;
     }
 
     // .. taken pct: dummy auras
@@ -7259,6 +7281,15 @@ uint32 Unit::MeleeDamageBonusTaken(Unit *pCaster, uint32 pdamage,WeaponAttackTyp
     if(spellProto && IsAreaOfEffectSpell(spellProto))
         TakenPercent *= GetTotalAuraMultiplier(SPELL_AURA_MOD_AOE_DAMAGE_AVOIDANCE);
 
+	// ..taken (SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN)
+	AuraList const& mModDamagePercentTaken = GetAurasByType(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN);
+	for(AuraList::const_iterator i = mModDamagePercentTaken.begin(); i != mModDamagePercentTaken.end(); ++i)
+	{
+		// Glyph of Salvation
+		if ((*i)->GetId() == 1038 && (*i)->GetCasterGUID() == GetGUID())
+			if (Aura *dummy = GetDummyAura(63225))
+				TakenPercent *= (-(dummy->GetModifier()->m_amount) + 100.0f) / 100.0f;
+	}
 
     // special dummys/class scripts and other effects
     // =============================================
