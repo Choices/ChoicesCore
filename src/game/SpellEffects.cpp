@@ -620,6 +620,10 @@ void Spell::EffectSchoolDMG(SpellEffectIndex effect_idx)
                         // Eviscerate and Envenom Bonus Damage (item set effect)
                         if(m_caster->GetDummyAura(37169))
                             damage += combo*40;
+
+						// Apply spell mods
+						if (Player* modOwner = m_caster->GetSpellModOwner())
+							modOwner->ApplySpellMod(m_spellInfo->Id, SPELLMOD_DAMAGE, damage);
                     }
                 }
                 // Gouge
@@ -5095,6 +5099,8 @@ void Spell::EffectWeaponDmg(SpellEffectIndex eff_idx)
                     // Devastate causing Sunder Armor Effect
                     // and no need to cast over max stack amount
                     m_caster->CastSpell(unitTarget, 58567, true);
+					if (Aura *aura = m_caster->GetDummyAura(58388))
+					m_caster->CastSpell (unitTarget, 58567, true);	
             }
             break;
         }
