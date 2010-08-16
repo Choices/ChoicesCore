@@ -259,6 +259,8 @@ void Spell::EffectResurrectNew(SpellEffectIndex eff_idx)
         return;
 
     uint32 health = damage;
+	if( m_caster->HasAura(54733, EFFECT_INDEX_0) ) // Glyph of Rebirth
+		health = pTarget->GetMaxHealth();
     uint32 mana = m_spellInfo->EffectMiscValue[eff_idx];
     pTarget->setResurrectRequestData(m_caster->GetGUID(), m_caster->GetMapId(), m_caster->GetPositionX(), m_caster->GetPositionY(), m_caster->GetPositionZ(), health, mana);
     SendResurrectRequest(pTarget);
@@ -6583,6 +6585,27 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
             }
             break;
         }
+		case SPELLFAMILY_WARRIOR:
+			{
+				switch(m_spellInfo->Id)
+				{
+					case 64380:                                 // Shattering Throw
+					{
+						if (!unitTarget || !unitTarget->isAlive())
+							return;
+
+						// remove immunity effects
+						unitTarget->RemoveAurasDueToSpell(642); // Divine Shield
+						unitTarget->RemoveAurasDueToSpell(1022); // Hand of Protection rank 1
+						unitTarget->RemoveAurasDueToSpell(5599); // Hand of Protection rank 2
+						unitTarget->RemoveAurasDueToSpell(10278); // Hand of Protection rank 3
+						unitTarget->RemoveAurasDueToSpell(19753); // Divine Intervention
+						unitTarget->RemoveAurasDueToSpell(45438); // Ice Block
+						break;
+					}
+				}
+				break;
+			}
     }
 
     // normal DB scripted effect
